@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: gapShop
- * Plugin URI:  https://gapshop.net
+ * Plugin URI:  https://wp.gapshop.net
  * Description: Connects your WordPress site to the gapShop eCommerce platform.
- * Version:     1.0.9
+ * Version:     1.0.10
  * Author:      gapShop
  * License:     GPL2
  */
@@ -13,14 +13,43 @@ if (!defined('ABSPATH')) exit;
 define('GAPSHOP_API',        'https://api.gapshop.net');
 define('GAPSHOP_ONBOARDING', 'https://onboarding.gapshop.net');
 define('GAPSHOP_PORTAL',     'https://gapshop.net');
-define('GAPSHOP_VERSION',    '1.0.9');
+define('GAPSHOP_VERSION',    '1.0.10');
 
 add_filter('pre_set_site_transient_update_plugins', function($transient) {
     if (empty($transient->checked)) return $transient;
 
     $response = wp_remote_get(
         'https://raw.githubusercontent.com/CCancelo/gapshop-wordpress-plugin/main/version.json',
-        ['timeout' => 10, 'cache-control' => 'no-cache']
+        ['timeout' => 10]
+    );
+
+    if (is_wp_error($response)) return $transient;
+
+    $data = json_decode(wp_remote_retrieve_body($response));
+    if (empty($data->version)) return $transient;
+
+    $plugin_file = plugin_basename(__FILE__);
+    $current_version = $transient->checked[$plugin_file] ?? '';
+
+    if (version_compare($data->version, $current_version, '>')) {
+        $transient->response[$plugin_file] = (object)[
+            'slug'        => 'gapshop',
+            'plugin'      => $plugin_file,
+            'new_version' => $data->version,
+            'url'         => 'https://gapshop.net',
+            'package'     => $data->download_url,
+        ];
+    }
+
+    return $transient;
+});
+
+add_filter('site_transient_update_plugins', function($transient) {
+    if (empty($transient->checked)) return $transient;
+
+    $response = wp_remote_get(
+        'https://raw.githubusercontent.com/CCancelo/gapshop-wordpress-plugin/main/version.json',
+        ['timeout' => 10]
     );
 
     if (is_wp_error($response)) return $transient;
@@ -67,6 +96,13 @@ add_filter('plugins_api', function($result, $action, $args) {
         'sections'      => (array)$data->sections,
     ];
 }, 10, 3);
+
+// REMOVE THIS IN PRODUCTION — forces fresh check on every admin load
+add_action('admin_init', function() {
+    if (is_admin() && current_user_can('update_plugins')) {
+        delete_site_transient('update_plugins');
+    }
+});
 
 // ─── Activation ───────────────────────────────────────────────────────────────
 
