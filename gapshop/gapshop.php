@@ -3,7 +3,7 @@
  * Plugin Name: gapShop
  * Plugin URI:  https://gapshop.net
  * Description: Connects your WordPress site to the gapShop eCommerce platform.
- * Version:     1.0.8
+ * Version:     1.0.9
  * Author:      gapShop
  * License:     GPL2
  */
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) exit;
 define('GAPSHOP_API',        'https://api.gapshop.net');
 define('GAPSHOP_ONBOARDING', 'https://onboarding.gapshop.net');
 define('GAPSHOP_PORTAL',     'https://gapshop.net');
-define('GAPSHOP_VERSION',    '1.0.8');
+define('GAPSHOP_VERSION',    '1.0.9');
 
 add_filter('pre_set_site_transient_update_plugins', function($transient) {
     if (empty($transient->checked)) return $transient;
@@ -385,6 +385,12 @@ function gapshop_settings_page() {
                         <input type="checkbox" name="gapshop_enable_search" value="1"
                             <?php checked(get_option('gapshop_enable_search', '0'), '1'); ?>>
                         <p class="description">Activates the gapShop live search overlay on this site.</p>
+                    </td>                
+                    <th>Enable OTP</th>
+                    <td>
+                        <input type="checkbox" name="gapshop_enable_otp" value="1"
+                            <?php checked(get_option('gapshop_enable_otp', '0'), '1'); ?>>
+                        <p class="description">Activates the gapShop OTP login feature on this site.</p>
                     </td>
             </tr>
             </table>
