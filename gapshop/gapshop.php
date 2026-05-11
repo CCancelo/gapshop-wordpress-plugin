@@ -370,6 +370,7 @@ function gapshop_settings_page() {
         update_option('gapshop_shop_secret', $secret);
         update_option('gapshop_api_url', GAPSHOP_API);
         update_option('gapshop_shop_url', site_url());
+        update_option('gapshop_otp_enabled', isset($_POST['gapshop_enable_otp']) ? true : false);
         update_option('gapshop_enable_search', isset($_POST['gapshop_enable_search']) ? '1' : '0');
 
         $result = gapshop_api_get('/api/status');
@@ -425,7 +426,7 @@ function gapshop_settings_page() {
                     <th>Enable OTP</th>
                     <td>
                         <input type="checkbox" name="gapshop_enable_otp" value="1"
-                            <?php checked(get_option('gapshop_enable_otp', '0'), '1'); ?>>
+                        <?php checked(get_option('gapshop_otp_enabled', false), true); ?>
                         <p class="description">Activates the gapShop OTP login feature on this site.</p>
                     </td>
             </tr>
