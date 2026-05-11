@@ -60,7 +60,7 @@ function gapshop_otp_enqueue_frontend(): void {
 function gapshop_otp_enqueue_script(string $redirect): void {
     wp_enqueue_script(
         'gapshop-otp',
-        plugin_dir_url(__FILE__) . 'assets/js/gapshop-otp.js',
+        plugin_dir_url(__FILE__) . 'assets/gapshop-otp.js',
         ['jquery'],
         '1.0.0',
         true
