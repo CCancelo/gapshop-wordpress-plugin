@@ -3,7 +3,7 @@
  * Plugin Name: gapShop
  * Plugin URI:  https://wp.gapshop.net
  * Description: Connects your WordPress site to the gapShop eCommerce platform.
- * Version:     1.0.14
+ * Version:     1.0.15
  * Author:      gapShop
  * License:     GPL2
  */
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) exit;
 define('GAPSHOP_API',        'https://api.gapshop.net');
 define('GAPSHOP_ONBOARDING', 'https://onboarding.gapshop.net');
 define('GAPSHOP_PORTAL',     'https://gapshop.net');
-define('GAPSHOP_VERSION',    '1.0.14');
+define('GAPSHOP_VERSION',    '1.0.15');
 
 add_filter('pre_set_site_transient_update_plugins', function($transient) {
     if (empty($transient->checked)) return $transient;
