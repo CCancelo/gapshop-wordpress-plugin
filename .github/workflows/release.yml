@@ -2,7 +2,7 @@ name: Release Plugin
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
 
 permissions:
   contents: write
