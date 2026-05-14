@@ -1,3 +1,4 @@
+<?php echo '1.0.1'; exit; ?>
 <?php
 /**
  * gapShop OTP Login
