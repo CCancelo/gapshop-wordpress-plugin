@@ -44,17 +44,13 @@ function gapshop_otp_settings_field(): void { ?>
 add_action('login_enqueue_scripts', 'gapshop_otp_enqueue_login');
 function gapshop_otp_enqueue_login(): void {
     if (!get_option('gapshop_otp_enabled')) return;
-    gapshop_otp_enqueue_script(wp_login_url());
+    gapshop_otp_enqueue_script(admin_url());
 }
-
 add_action('wp_enqueue_scripts', 'gapshop_otp_enqueue_frontend');
 function gapshop_otp_enqueue_frontend(): void {
     if (!get_option('gapshop_otp_enabled')) return;
     if (!function_exists('is_account_page') || !is_account_page()) return;
-    $redirect = function_exists('wc_get_account_endpoint_url')
-        ? wc_get_account_endpoint_url('dashboard')
-        : home_url('/my-account/');
-    gapshop_otp_enqueue_script($redirect);
+    gapshop_otp_enqueue_script(home_url('/'));
 }
 
 function gapshop_otp_enqueue_script(string $redirect): void {
@@ -130,24 +126,85 @@ function gapshop_handle_otp_verify(): void {
     // Find or create WordPress user
     $user = get_user_by('email', $email);
     if (!$user) {
+        $users = get_users(['search' => $email, 'search_columns' => ['user_email']]);
+        $user = !empty($users) ? $users[0] : null;
+    }
+    if (!$user) {
         $username = sanitize_user(strstr($email, '@', true), true);
         if (username_exists($username)) $username .= '_' . substr(uniqid(), -4);
-
         $user_id = wp_create_user($username, wp_generate_password(24, true, true), $email);
         if (is_wp_error($user_id)) wp_send_json_error('Account creation failed.');
-
         $display = trim(($body['firstName'] ?? '') . ' ' . ($body['lastName'] ?? ''));
         if ($display) wp_update_user(['ID' => $user_id, 'display_name' => $display]);
-
         $user = get_user_by('id', $user_id);
     }
 
     wp_set_current_user($user->ID);
     wp_set_auth_cookie($user->ID, true);
 
-    $redirect = function_exists('wc_get_account_endpoint_url')
-        ? wc_get_account_endpoint_url('dashboard')
-        : home_url('/my-account/');
+    $redirect = user_can($user, 'administrator') 
+        ? admin_url() 
+        : home_url('/');
 
     wp_send_json_success(['redirect' => $redirect]);
 }
+
+add_action('login_head', function(): void {
+    if (!get_option('gapshop_otp_enabled')) return; ?>
+    <style>
+        .gs-otp-wrap {
+            background: #fff;
+            border-radius: 4px;
+            padding: 26px 24px 32px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.13);
+        }
+        .gs-otp-hint {
+            font-size: 14px;
+            color: #3c434a;
+            margin: 0 0 16px;
+        }
+        #gs-otp-email,
+        #gs-otp-code {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 24px;
+            border: 1px solid #8c8f94;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+            background: #fbfbfc;
+            color: #2c3338;
+        }
+        .gs-otp-btn {
+            width: 100%;
+            padding: 10px;
+            background: #2271b1;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+        .gs-otp-btn:hover { background: #135e96; }
+        .gs-otp-btn:disabled { background: #a7aaad; cursor: not-allowed; }
+        .gs-otp-link {
+            background: none;
+            border: none;
+            color: #2271b1;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 0;
+            display: block;
+            margin-top: 8px;
+        }
+        .gs-otp-error {
+            color: #d63638;
+            font-size: 13px;
+            margin: 4px 0 0;
+        }
+    </style>
+    <?php
+});
