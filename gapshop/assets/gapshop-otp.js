@@ -27,11 +27,23 @@
         </div>`;
 
     function init() {
-        const $container = $('#gs-otp-container');
-        if (!$container.length) return;
+        const isWpLogin    = $('body').hasClass('login');
+        const isWooAccount = $('body').hasClass('woocommerce-account')
+                                && $('.woocommerce-form-login').length > 0;
+
+        if (!isWpLogin && !isWooAccount) return;
+
+        const context = isWpLogin ? 'wp' : 'woo';
+        const $container = $('<div id="gs-otp-container"></div>').attr('data-context', context);
+
+        if (isWpLogin) {
+            $('#loginform').after($container);
+        } else {
+            $('.woocommerce-form-login').before($container);
+        }
 
         $container.html(HTML);
-        hideNativeForm($container.data('context'));
+        hideNativeForm(context);
         bindEvents();
         $('#gs-otp-email').focus();
     }
