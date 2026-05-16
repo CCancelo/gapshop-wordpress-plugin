@@ -3,7 +3,7 @@
  * Plugin Name: gapShop
  * Plugin URI:  https://wp.gapshop.net
  * Description: Connects your WordPress site to the gapShop eCommerce platform.
- * Version:     1.0.27
+ * Version:     1.0.28
  * Author:      gapShop
  * License:     GPL2
  */
@@ -14,7 +14,7 @@ define('GAPSHOP_API',        'https://api.gapshop.net');
 define('GAPSHOP_ONBOARDING', 'https://onboarding.gapshop.net');
 define('GAPSHOP_PORTAL',     'https://gapshop.net');
 require_once plugin_dir_path(__FILE__) . 'gapshop-otp.php';
-define('GAPSHOP_VERSION',    '1.0.27');
+define('GAPSHOP_VERSION',    '1.0.28');
 
 add_filter('pre_set_site_transient_update_plugins', function($transient) {
     if (empty($transient->checked)) return $transient;
@@ -372,7 +372,6 @@ function gapshop_settings_page() {
         update_option('gapshop_api_url', GAPSHOP_API);
         update_option('gapshop_shop_url', site_url());
         update_option('gapshop_otp_enabled', isset($_POST['gapshop_enable_otp']) ? true : false);
-        update_option('gapshop_enable_search', isset($_POST['gapshop_enable_search']) ? '1' : '0');
 
         $result = gapshop_api_get('/api/status');
         if (!is_wp_error($result) && isset($result['name'])) {
@@ -417,20 +416,6 @@ function gapshop_settings_page() {
                         </p>
                     </td>
                 </tr>
-                <tr>
-                <th>Enable Search Overlay</th>
-                    <td>
-                        <input type="checkbox" name="gapshop_enable_search" value="1"
-                            <?php checked(get_option('gapshop_enable_search', '0'), '1'); ?>>
-                        <p class="description">Activates the gapShop live search overlay on this site.</p>
-                    </td>                
-                    <th>Enable OTP</th>
-                    <td>
-                        <input type="checkbox" name="gapshop_enable_otp" value="1"
-                        <?php checked(get_option('gapshop_otp_enabled', false), true); ?>
-                        <p class="description">Activates the gapShop OTP login feature on this site.</p>
-                    </td>
-            </tr>
             </table>
             <p class="submit">
                 <input type="submit" name="gapshop_save_settings" class="button button-primary" value="Save & Test Connection" />
@@ -1165,69 +1150,4 @@ function gapshop_sc_account($atts) {
     </script>
     <?php
     return ob_get_clean();
-}
-
-// ─── Search Integration ───────────────────────────────────────────────
-
-// Enqueue search assets
-add_action('wp_enqueue_scripts', function () {
-    error_log('gapshop search enqueue check: ' . get_option('gapshop_enable_search', '0'));
-    if (get_option('gapshop_enable_search', '0') !== '1') return;
-    if (empty(get_option('gapshop_api_url', ''))) return;
-
-    wp_enqueue_style(
-        'gapshop-search',
-        plugin_dir_url(__FILE__) . 'assets/gapshop-search.css',
-        [], '1.0.0'
-    );
-    wp_enqueue_script(
-        'gapshop-search',
-        plugin_dir_url(__FILE__) . 'assets/gapshop-search.js',
-        ['jquery'], '1.0.0', true
-    );
-    wp_localize_script('gapshop-search', 'gapshopSearch', [
-        'apiUrl'    => get_option('gapshop_api_url', ''),
-        'shopUrl'   => get_option('gapshop_shop_url', ''),
-        'shopSecret'=> get_option('gapshop_shop_secret', ''),
-        'ajaxUrl'   => admin_url('admin-ajax.php'),
-        'nonce'     => wp_create_nonce('gapshop_search'),
-    ]);
-});
-
-// AJAX proxy — keeps secret server-side
-add_action('wp_ajax_nopriv_gapshop_search', 'gapshop_handle_search');
-add_action('wp_ajax_gapshop_search',        'gapshop_handle_search');
-function gapshop_handle_search() {
-    check_ajax_referer('gapshop_search', 'nonce');
-
-    $q        = sanitize_text_field($_GET['q'] ?? '');
-    $category = sanitize_text_field($_GET['category'] ?? '');
-    $limit    = min(20, absint($_GET['limit'] ?? 10));
-
-    if (empty($q)) wp_send_json_success(['hits' => [], 'totalHits' => 0, 'query' => '']);
-
-    $api_url    = rtrim(get_option('gapshop_api_url', ''), '/');
-    $shop_url   = get_option('gapshop_shop_url', '');
-    $shop_secret= get_option('gapshop_shop_secret', '');
-
-    $endpoint = add_query_arg(array_filter([
-        'q'       => $q,
-        'category'=> $category ?: null,
-        'limit'   => $limit,
-    ]), "$api_url/api/search");
-
-    $response = wp_remote_get($endpoint, [
-        'timeout' => 5,
-        'headers' => [
-            'X-Shop-Url'    => $shop_url,
-            'X-Shop-Secret' => $shop_secret,
-        ]
-    ]);
-
-    if (is_wp_error($response)) {
-        wp_send_json_error('Search unavailable');
-    }
-
-    $body = json_decode(wp_remote_retrieve_body($response), true);
-    wp_send_json_success($body);
 }
