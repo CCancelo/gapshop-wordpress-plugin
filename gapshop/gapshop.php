@@ -3,7 +3,7 @@
  * Plugin Name: gapShop
  * Plugin URI:  https://wp.gapshop.net
  * Description: Connects your WordPress site to the gapShop eCommerce platform.
- * Version:     1.0.29
+ * Version:     1.0.30
  * Author:      gapShop
  * License:     GPL2
  */
@@ -14,7 +14,7 @@ define('GAPSHOP_API',        'https://api.gapshop.net');
 define('GAPSHOP_ONBOARDING', 'https://onboarding.gapshop.net');
 define('GAPSHOP_PORTAL',     'https://gapshop.net');
 require_once plugin_dir_path(__FILE__) . 'gapshop-otp.php';
-define('GAPSHOP_VERSION',    '1.0.29');
+define('GAPSHOP_VERSION',    '1.0.30');
 
 add_filter('pre_set_site_transient_update_plugins', function($transient) {
     if (empty($transient->checked)) return $transient;
@@ -1147,4 +1147,27 @@ function gapshop_sc_account($atts) {
     </script>
     <?php
     return ob_get_clean();
+}
+
+// ─── Blog Sync Hook ───────────────────────────────────────────────────────────
+add_action('save_post', 'gapshop_sync_post_on_save', 10, 2);
+function gapshop_sync_post_on_save($post_id, $post) {
+    // Skip revisions and autosaves
+    if (wp_is_post_revision($post_id)) return;
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    if ($post->post_status !== 'publish') return;
+
+    $sync_secret = get_option('gapshop_sync_secret', '');
+    if (empty($sync_secret)) return;
+
+    // Non-blocking — doesn't slow down WP save
+    wp_remote_post(GAPSHOP_API . '/api/wp/sync', [
+        'headers'  => [
+            'Content-Type'  => 'application/json',
+            'X-Sync-Secret' => $sync_secret,
+        ],
+        'body'     => json_encode(['post_id' => $post_id]),
+        'timeout'  => 5,
+        'blocking' => false,
+    ]);
 }
